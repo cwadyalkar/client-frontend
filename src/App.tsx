@@ -138,7 +138,7 @@ const createInitialPayload = (): InterviewPayload => ({
     subCategory: '',
     fullName: 'Chirag Wadyalkar',
     taskId: 'e8d9ba6c-6a9c-44e2-a3e9-257d7389a95f',
-    sessionId: 'a8545a6c-6a9c-44e2-a3e9-257d7389a95f',
+    sessionId: crypto.randomUUID(),
     interviewCategory: 'Technical',
     interviewDomain: 'Product-based',
     duration: 30,
@@ -156,8 +156,8 @@ const createInitialPayload = (): InterviewPayload => ({
 })
 
 export default function App() {
-    const [apiBaseUrl, setApiBaseUrl] = useState(import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3003/api/v1')
-    const [iframeBaseUrl, setIframeBaseUrl] = useState(import.meta.env.VITE_IFRAME_BASE_URL ?? 'http://localhost:4000')
+    const [apiBaseUrl, setApiBaseUrl] = useState(import.meta.env.VITE_API_BASE_URL ?? 'https://dev.aceint.ai/backend/api/v1')
+    const [iframeBaseUrl, setIframeBaseUrl] = useState(import.meta.env.VITE_IFRAME_BASE_URL ?? 'https://dev.aceint.ai')
     const [apiToken, setApiToken] = useState(import.meta.env.VITE_SAAS_API_TOKEN ?? '')
     const [payloadText, setPayloadText] = useState(JSON.stringify(createInitialPayload(), null, 2))
     const [isStarting, setIsStarting] = useState(false)
@@ -172,8 +172,6 @@ export default function App() {
         const base = iframeBaseUrl.replace(/\/$/, '')
         const query = new URLSearchParams({
             ...(apiToken ? { clientToken: apiToken } : {}),
-            token: embeddedSession.token,
-            livekitUrl: embeddedSession.livekitUrl,
         })
         return `${base}/client/interview/${embeddedSession.sessionId}/screen?${query.toString()}`
     }, [embeddedSession, iframeBaseUrl, apiToken])
@@ -771,7 +769,7 @@ export default function App() {
                                     <input
                                         value={apiBaseUrl}
                                         onChange={e => setApiBaseUrl(e.target.value)}
-                                        placeholder="http://localhost:3003/api/v1"
+                                        placeholder="https://dev.aceint.ai/backend/api/v1"
                                     />
                                 </div>
                                 <div className="field">
@@ -779,7 +777,7 @@ export default function App() {
                                     <input
                                         value={iframeBaseUrl}
                                         onChange={e => setIframeBaseUrl(e.target.value)}
-                                        placeholder="http://localhost:4000"
+                                        placeholder="https://dev.aceint.ai"
                                     />
                                 </div>
                             </div>
