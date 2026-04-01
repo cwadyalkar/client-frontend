@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 type ConceptTopic = {
     id: string
@@ -166,6 +166,9 @@ export default function App() {
     const [embeddedSession, setEmbeddedSession] = useState<EmbeddedInterviewSession | null>(null)
     const [activeTab, setActiveTab] = useState<'request' | 'response'>('request')
     const [showPayload, setShowPayload] = useState(false)
+    const [showHelp, setShowHelp] = useState(false)
+    const [isEmbedBooting, setIsEmbedBooting] = useState(false)
+    const [embedCountdown, setEmbedCountdown] = useState(30)
 
     const iframeUrl = useMemo(() => {
         if (!embeddedSession) return ''
@@ -176,6 +179,30 @@ export default function App() {
         return `${base}/client/interview/${embeddedSession.sessionId}/screen?${query.toString()}`
     }, [embeddedSession, iframeBaseUrl, apiToken])
     console.log(iframeUrl)
+
+    useEffect(() => {
+        if (!embeddedSession) {
+            setIsEmbedBooting(false)
+            setEmbedCountdown(30)
+            return
+        }
+
+        setIsEmbedBooting(true)
+        setEmbedCountdown(30)
+
+        const countdownTimer = window.setInterval(() => {
+            setEmbedCountdown(prev => (prev > 0 ? prev - 1 : 0))
+        }, 1000)
+
+        const timer = window.setTimeout(() => {
+            setIsEmbedBooting(false)
+        }, 30000)
+
+        return () => {
+            window.clearTimeout(timer)
+            window.clearInterval(countdownTimer)
+        }
+    }, [embeddedSession])
 
     const iframeBaseWarning = useMemo(() => {
         const base = iframeBaseUrl.replace(/\/$/, '')
@@ -335,6 +362,11 @@ export default function App() {
           gap: 6px;
           font-size: 12px;
           color: var(--text-tertiary);
+        }
+        .topbar-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
         }
         .status-dot {
           width: 6px;
@@ -531,6 +563,27 @@ export default function App() {
           white-space: nowrap;
         }
         .btn-ghost:hover { border-color: var(--border-hover); color: var(--text-primary); background: var(--surface-2); }
+        .btn-link {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: transparent;
+          color: var(--text-secondary);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          font-family: var(--font);
+          font-size: 12px;
+          font-weight: 500;
+          padding: 7px 14px;
+          cursor: pointer;
+          transition: border-color 0.15s, color 0.15s, background 0.15s;
+          white-space: nowrap;
+        }
+        .btn-link:hover {
+          border-color: var(--border-hover);
+          color: var(--text-primary);
+          background: var(--surface-2);
+        }
 
         .action-row {
           display: flex;
@@ -735,6 +788,100 @@ export default function App() {
           animation: spin 0.6s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        .help-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.72);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+          z-index: 200;
+        }
+        .help-modal {
+          width: min(880px, 100%);
+          max-height: min(88vh, 900px);
+          overflow: auto;
+          background: var(--surface);
+          border: 1px solid var(--border-hover);
+          border-radius: 20px;
+          box-shadow: 0 30px 80px rgba(0,0,0,0.45);
+        }
+        .help-header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 24px 24px 18px;
+          border-bottom: 1px solid var(--border);
+        }
+        .help-title {
+          font-size: 22px;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+        .help-subtitle {
+          margin-top: 6px;
+          font-size: 13px;
+          color: var(--text-secondary);
+          max-width: 620px;
+        }
+        .help-close {
+          width: 36px;
+          height: 36px;
+          border-radius: 10px;
+          border: 1px solid var(--border);
+          background: var(--surface-2);
+          color: var(--text-secondary);
+          cursor: pointer;
+          font-size: 18px;
+        }
+        .help-close:hover {
+          color: var(--text-primary);
+          border-color: var(--border-hover);
+        }
+        .help-body {
+          padding: 24px;
+          display: grid;
+          gap: 18px;
+        }
+        .help-card {
+          background: var(--surface-2);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          padding: 18px;
+        }
+        .help-card h3 {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: 10px;
+        }
+        .help-card p, .help-card li {
+          font-size: 13px;
+          color: var(--text-secondary);
+          line-height: 1.7;
+        }
+        .help-card ol, .help-card ul {
+          padding-left: 18px;
+          display: grid;
+          gap: 8px;
+        }
+        .help-code {
+          margin-top: 12px;
+          background: var(--bg);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 12px 14px;
+          font-family: var(--font-mono);
+          font-size: 11.5px;
+          color: var(--text-primary);
+          overflow-x: auto;
+          line-height: 1.7;
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
       `}</style>
 
             {/* Topbar */}
@@ -744,11 +891,103 @@ export default function App() {
                     AceInt
                     <span className="topbar-badge">Client Embed Demo</span>
                 </div>
-                <div className="topbar-meta">
-                    <span className="status-dot" />
-                    Ready
+                <div className="topbar-actions">
+                    <button className="btn-link" onClick={() => setShowHelp(true)}>
+                        How to use
+                    </button>
+                    <div className="topbar-meta">
+                        <span className="status-dot" />
+                        Ready
+                    </div>
                 </div>
             </header>
+
+            {showHelp && (
+                <div className="help-overlay" onClick={() => setShowHelp(false)}>
+                    <div className="help-modal" onClick={e => e.stopPropagation()}>
+                        <div className="help-header">
+                            <div>
+                                <div className="help-title">How to use this client embed demo</div>
+                                <div className="help-subtitle">
+                                    This demo creates an AceInt SaaS interview session and then opens the AceInt
+                                    interview screen inside an iframe so you can test the full integration flow.
+                                </div>
+                            </div>
+                            <button className="help-close" onClick={() => setShowHelp(false)}>×</button>
+                        </div>
+
+                        <div className="help-body">
+                            <div className="help-card">
+                                <h3>1. Generate the SaaS client token</h3>
+                                <ol>
+                                    <li>Create or use your SaaS client from the AceInt backend/admin side.</li>
+                                    <li>Generate the SaaS JWT token for that client.</li>
+                                    <li>Paste that token into the <strong>SaaS API bearer token</strong> field here.</li>
+                                </ol>
+                                <p>This token authorizes the session creation request from this demo UI.</p>
+                            </div>
+
+                            <div className="help-card">
+                                <h3>2. Set the two required URLs</h3>
+                                <ul>
+                                    <li><strong>Backend API base URL</strong> should point to the backend exposing <code>/saas/session/create</code>.</li>
+                                    <li><strong>AceInt web base URL</strong> should point to the running <code>aceint-web</code> app.</li>
+                                </ul>
+                                <div className="help-code">{`Example:
+Backend API base URL: http://localhost:3003/api/v1
+AceInt web base URL: http://localhost:4000`}</div>
+                            </div>
+
+                            <div className="help-card">
+                                <h3>3. Update the session payload</h3>
+                                <p>
+                                    The JSON payload is the interview session data that will be stored for the interview.
+                                    You can edit fields like <code>fullName</code>, <code>jobRole</code>,
+                                    <code>interviewCategory</code>, <code>duration</code>, and <code>topics</code>.
+                                </p>
+                                <p>When you click <strong>Start interview</strong>, this page sends:</p>
+                                <div className="help-code">POST /saas/session/create</div>
+                            </div>
+
+                            <div className="help-card">
+                                <h3>4. What happens after clicking Start interview</h3>
+                                <ol>
+                                    <li>This client demo calls the AceInt SaaS create-session API.</li>
+                                    <li>The backend creates and stores the interview session.</li>
+                                    <li>This page receives the created session response and uses the <code>sessionId</code>.</li>
+                                    <li>The iframe opens the AceInt interview screen from <code>aceint-web</code>.</li>
+                                    <li>The AceInt screen fetches the session details and starts the interview.</li>
+                                </ol>
+                            </div>
+
+                            <div className="help-card">
+                                <h3>5. How the iframe URL works</h3>
+                                <p>
+                                    The iframe points to the AceInt client interview route. The session ID in the path tells
+                                    AceInt which interview session to load.
+                                </p>
+                                <div className="help-code">{`${iframeBaseUrl.replace(/\/$/, '')}/client/interview/{sessionId}/screen`}</div>
+                                <p>
+                                    In this demo, the parent page is the client app and the embedded page is the AceInt interview UI.
+                                </p>
+                            </div>
+
+                            <div className="help-card">
+                                <h3>6. What a real client integration looks like</h3>
+                                <ol>
+                                    <li>Client app calls the AceInt SaaS session-create API.</li>
+                                    <li>Client app gets back the session information or final iframe URL.</li>
+                                    <li>Client app renders the AceInt interview screen inside an iframe.</li>
+                                </ol>
+                                <div className="help-code">{`<iframe
+  src="${iframeBaseUrl.replace(/\/$/, '')}/client/interview/{sessionId}/screen"
+  allow="camera; microphone; fullscreen"
+/>`}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="layout">
                 {/* ── Left: Config Panel ── */}
@@ -769,7 +1008,7 @@ export default function App() {
                                     <input
                                         value={apiBaseUrl}
                                         onChange={e => setApiBaseUrl(e.target.value)}
-                                        placeholder="https://dev.aceint.ai/backend/api/v1"
+                                        placeholder="http://localhost:3003/api/v1"
                                     />
                                 </div>
                                 <div className="field">
@@ -777,7 +1016,7 @@ export default function App() {
                                     <input
                                         value={iframeBaseUrl}
                                         onChange={e => setIframeBaseUrl(e.target.value)}
-                                        placeholder="https://dev.aceint.ai"
+                                        placeholder="http://localhost:4000"
                                     />
                                 </div>
                             </div>
@@ -920,11 +1159,51 @@ export default function App() {
                     <div className="embed-body">
                         {embeddedSession ? (
                             <div className="iframe-wrap">
-                                <iframe
-                                    title="AceInt Interview"
-                                    src={iframeUrl}
-                                    allow="camera; microphone; fullscreen"
-                                />
+                                {isEmbedBooting ? (
+                                    <div style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '16px',
+                                        background: 'linear-gradient(180deg, rgba(19,22,27,1) 0%, rgba(13,15,18,1) 100%)',
+                                        color: 'var(--text-primary)',
+                                        textAlign: 'center',
+                                        padding: '24px'
+                                    }}>
+                                        <span className="spinner" style={{ width: 28, height: 28, borderWidth: 3 }} />
+                                        <div>
+                                            <div style={{ fontSize: 18, fontWeight: 600 }}>Preparing interview environment</div>
+                                            <div style={{ marginTop: 8, fontSize: 13, color: 'var(--text-secondary)', maxWidth: 420 }}>
+                                                Please wait for 30 seconds while AceInt initializes the session and gets the interview screen ready.
+                                            </div>
+                                            <div style={{
+                                                marginTop: 14,
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                minWidth: 88,
+                                                padding: '8px 14px',
+                                                borderRadius: 999,
+                                                border: '1px solid rgba(79,142,247,0.25)',
+                                                background: 'rgba(79,142,247,0.12)',
+                                                fontSize: 14,
+                                                fontWeight: 600,
+                                                color: '#dbe8ff'
+                                            }}>
+                                                {embedCountdown}s
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <iframe
+                                        title="AceInt Interview"
+                                        src={iframeUrl}
+                                        allow="camera; microphone; fullscreen"
+                                    />
+                                )}
                             </div>
                         ) : (
                             <div className="embed-empty">
